@@ -76,7 +76,6 @@ var canvasHeight = 700;
         this.canPass = true;
         this.landed = false;
         this.collission = false;
-
         this.height = 0;
         this.baseHeight = startingHeight;
         this.canvasWidth = canvasWidth;
@@ -98,6 +97,46 @@ var canvasHeight = 700;
         this.lastFrame = null;
         // 5/28 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         this.rewindCount = 0;
+        // 5/28 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    }
+
+    //This information is to update all the current information of the player
+    RunBoy.prototype.update = function(player) {
+        this.rewindFrame = player.rewindFrame;
+        this.x = player.x;
+        this.y = player.y;
+        //this.name = the_name;
+        this.jumping = player.jumping;
+        this.running = player.running;
+        this.runningJump = player.runningJump;
+        this.standing = player.standing;
+        this.falling = player.falling;
+        this.canPass = player.canPass;
+        this.landed = player.landed;
+        this.collission = player.collission
+        this.height = player.height
+        //this.baseHeight = startingHeight;
+        //this.canvasWidth = canvasWidth;
+        //this.worldWidth = worldWidth;
+        this.worldX = player.worldX;
+        //this.worldX = 8100;
+        this.worldY = player.worldY;
+        this.boundingbox = new BoundingBox(player.boundingbox.x, player.boundingbox.y,
+            player.boundingbox.width, player.boundingbox.height); //145
+        //when its null I'm not currently on a platform.
+        this.currentPlatform = player.currentPlatform;
+        //keeps track of where the bounding box's bottom was before it changed. should be when falling.
+        this.lastBottom = player.lastBottom;
+        this.lastTop = player.lastTop;
+
+        //stores character's rewindStack
+        this.myRewindStack = player.myRewindStack;
+        this.rewinding = player.rewinding;
+        //this.game = game;
+        this.lastFrame = player.lastFrame;
+        // 5/28 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        this.rewindCount = player.rewindCount;
         // 5/28 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     }

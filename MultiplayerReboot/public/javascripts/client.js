@@ -4,46 +4,58 @@ var webAddress = "http://127.0.0.1:1337";
 //var io = require('socket.io');
 var socket = io.connect(webAddress);
 var gameboard = new GameBoard();
+var ASSET_MANAGER = new AssetManager();
 var heroSpriteSheet = "/images/runboySprite.png";
+ASSET_MANAGER.queueDownload(heroSpriteSheet);
+
 var player;
-    
-    window.onload = function () {
-        var status = document.getElementById("status");
-        var name = document.getElementById("nameBox");
-        var joinBtn = document.getElementById("join");
-        //Submit users name for game play
-        joinBtn.addEventListener('click', function (e) {
-            socket.name = name;
-            socket.emit('join', { name: name.value });
+var gameEngine = new GameEngine();
 
-        }, false);
+window.onload = function () {
+    var status = document.getElementById("status");
+    var name = document.getElementById("nameBox");
+    var joinBtn = document.getElementById("join");
+    //Submit users name for game play
+    joinBtn.addEventListener('click', function (e) {
+        socket.name = name;
+        socket.emit('join', { name: name.value });
+        player = new RunBoy(canvasWidth, worldWidth, name.value);
+        
+        ASSET_MANAGER.downloadAll(function () {});
+        player.initializeAnimation();
+    }, false);
 
-        socket.on('sync', function (data) {
-            gameboard.players = data.players;
+    socket.on('sync', function (data) {
+        gameboard.players = data.players;
 
-            console.log(gameboard.players[0].name === name.value ? gameboard.players[0] : gameboard.players[1]);
-        });
+        console.log(gameboard.players[0].name === name.value ? gameboard.players[0] : gameboard.players[1]);
+    });
 
-        socket.on('initGame', function (data) {
-            player = gameboard.getPlayer(name.value);
-        });
+    socket.on('initGame', function (data) {
+        player.update(gameboard.getPlayer(name.value));
+        var canvas = document.getElementById("world");
+        canvas.focus();
+        var ctx = canvas.getContext("2d");
+        gameEngine.init(ctx);
+        console.log(player);
+    });
 
-        socket.on('start', function (data) {
-            
-            status.innerHTML = "Welcome to Sibling Rivalry<br />"
-                         + "Please enter your name and click join";
+    socket.on('start', function (data) {
 
-        });
+        status.innerHTML = "Welcome to Sibling Rivalry<br />"
+                     + "Please enter your name and click join";
 
-        socket.on('waiting', function (data) {
-            status.innerHTML = data.message;
-        });
+    });
 
-        socket.on('ready', function (data) {
-            status.innerHTML = data.message;
-        });
+    socket.on('waiting', function (data) {
+        status.innerHTML = data.message;
+    });
 
-    };
+    socket.on('ready', function (data) {
+        status.innerHTML = data.message;
+    });
+
+};
 
     GameBoard.prototype.getPlayer = function (name) {
         if (this.players[0].name === name) {

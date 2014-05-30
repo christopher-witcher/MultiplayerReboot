@@ -38,6 +38,7 @@
     <Compile Include="routes\index.js" />
     <Compile Include="routes\user.js" />
     <Content Include="package.json" />
+    <Content Include="public\images\runboySprite.png" />
     <Content Include="public\stylesheets\style.styl" />
     <Content Include="README.md" />
     <Content Include="views\index.jade" />
@@ -45,8 +46,8 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="public\" />
-    <Folder Include="public\images\" />
     <Folder Include="public\javascripts\" />
+    <Folder Include="public\images\" />
     <Folder Include="public\stylesheets\" />
     <Folder Include="routes\" />
     <Folder Include="views\" />
