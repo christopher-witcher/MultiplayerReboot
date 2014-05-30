@@ -1,0 +1,14 @@
+﻿doctype html
+html
+  head
+    title= title
+    link(rel='stylesheet', href='/stylesheets/style.css')
+    script(src='/socket.io/socket.io.js')
+    script(src='/javascripts/gameboard.js')
+    script(src='/javascripts/canvasengine.js')
+    script(src='/javascripts/client.js')
+  body
+  input#nameBox(type="text", placeholder="your name") 
+  button#join Join...
+  #status(tabindex='2', width= 100, height=100, style='z-index: 2;')
+  canvas#world(tabindex='1', width=1250, height=600, style='border-radius:5px 5px; -moz-box-shadow: 10px 10px 5px #808080; -webkit-box-shadow: 10px 10px 5px #808080; box-shadow: 10px 10px 5px #808080; -webkit-border-radius: 20px; -moz-border-radius: 20px; border-radius: 20px; border: 0; position: absolute; left: 0; top: 23px; z-index: -1; background: skyblue; background: -webkit-linear-gradient(top, skyblue 0%, #fff 100%); background: -linear-gradient(top, skyblue 0%, skyblue 100%); background: -moz-linear-gradient(top, skyblue 0%, #fff 100%);')
