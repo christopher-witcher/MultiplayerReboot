@@ -65,7 +65,7 @@ io.sockets.on('connection', function (socket) {
             socketsCreated++;
             numSockets++;
             gameboard.addPlayer(data.name);
-            console.log(gameboard.players);
+            console.log(gameboard.getPlayer(data.name));
             if (gameboard.players.length < 2) {
                  var waitStr = "Welcome " + data.name + "<br />" 
                             + "Waiting for another player to join...";
@@ -79,4 +79,12 @@ io.sockets.on('connection', function (socket) {
 
         });
 
+        socket.on('keydown', function (data) {
+            gameboard.move(data);
+            
+            //console.log(data.name);
+            //gameboard.move(data.game,
+
+
+        });
 });

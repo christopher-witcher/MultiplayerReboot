@@ -7,17 +7,18 @@ var gameboard = new GameBoard();
 var ASSET_MANAGER = new AssetManager();
 var heroSpriteSheet = "/images/runboySprite.png";
 ASSET_MANAGER.queueDownload(heroSpriteSheet);
-
+var myName;
 var player;
 var gameEngine = new GameEngine();
 
 window.onload = function () {
     var status = document.getElementById("status");
     var name = document.getElementById("nameBox");
+    myName = name.value;
     var joinBtn = document.getElementById("join");
     //Submit users name for game play
     joinBtn.addEventListener('click', function (e) {
-        socket.name = name;
+        socket.name = name.value;
         socket.emit('join', { name: name.value });
         player = new RunBoy(canvasWidth, worldWidth, name.value);
         
@@ -32,11 +33,11 @@ window.onload = function () {
     });
 
     socket.on('initGame', function (data) {
-        player.update(gameboard.getPlayer(name.value));
+        player.update(gameboard.getPlayer(myName));
         var canvas = document.getElementById("world");
         canvas.focus();
         var ctx = canvas.getContext("2d");
-        gameEngine.init(ctx);
+        gameEngine.init(ctx, name.value);
         console.log(player);
     });
 
@@ -57,10 +58,10 @@ window.onload = function () {
 
 };
 
-    GameBoard.prototype.getPlayer = function (name) {
-        if (this.players[0].name === name) {
-            return this.players[0];
-        } else {
-            return this.players[1];
-        }
-    }
+    //GameBoard.prototype.getPlayer = function (name) {
+    //    if (this.players[0].name === name) {
+    //        return this.players[0];
+    //    } else {
+    //        return this.players[1];
+    //    }
+    //}

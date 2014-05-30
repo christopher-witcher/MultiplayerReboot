@@ -36,10 +36,10 @@ function GameEngine() {
     this.finishLineCompleted = false;
     this.runInsideComplete = false;
     this.closeDoorCompleted = false;
-
+    
 }
 
-GameEngine.prototype.init = function (ctx) {
+GameEngine.prototype.init = function (ctx, name) {
     this.ctx = ctx;
     this.surfaceWidth = this.ctx.canvas.width;
     this.surfaceHeight = this.ctx.canvas.height;
@@ -50,6 +50,7 @@ GameEngine.prototype.init = function (ctx) {
     //document.getElementById("score").innerHTML = this.score;
     console.log('game initialized');
     console.log(this);
+    this.name = name;
 }
 
 
@@ -103,22 +104,26 @@ GameEngine.prototype.startInput = function () {
         if (e.keyCode === 39) {
             that.rightArrow = true;
             that.isRightArrowUp = false;
-            direction = true; // true = right
+            that.direction = true; // true = right
+            
         }
 
         if (e.keyCode === 37) {
             that.leftArrow = true;
             that.isLeftArrowUp = false;
-            direction = false; // false = left
+            that.direction = false; // false = left
         }
 
         if (e.keyCode === 32) {
             that.space = true;
             // 5/28 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-            document.getElementById("jumpSound").play();
+           // document.getElementById("jumpSound").play();
             // 5/28 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         }
         e.preventDefault();
+       gameboard.move(that.currentState);
+        socket.emit('keydown', that.currentState());
+        
     }
 
     this.ctx.canvas.addEventListener("keydown", this.keyDown, false);
@@ -133,9 +138,26 @@ GameEngine.prototype.startInput = function () {
             that.isLeftArrowUp = true;
         }
         e.preventDefault();
+        //GameBoard move method
+        
+        socket.emit('keyup', that.currentState());
     }, false);
 
     console.log('Input started');
+}
+
+GameEngine.prototype.currentState = function () {
+    var output = {
+        space: this.space,
+        leftArrow: this.leftArrow,
+        isLeftArrowUp: this.isLeftArrowUp, 
+        direction: this.direction,
+        rightArrow: this.rightArrow,
+        isRightArrowUp: this.isRightArrowUp,
+        name: this.name
+    }
+
+    return output;
 }
 
 
