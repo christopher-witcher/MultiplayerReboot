@@ -4,6 +4,7 @@ var canvasWidth = 1250;
 var canvasHeight = 700;
 var player_one = new RunBoy(canvasWidth, canvasHeight);
 var player_two = new RunBoy(canvasWidth, canvasHeight);
+var moveDistance = 7;
     //This is the gameboard and contains everything which is used in the game.
 
     (function (exports) {
@@ -22,6 +23,7 @@ var player_two = new RunBoy(canvasWidth, canvasHeight);
             this.players.push(name);
             player_two.setName(name);
         }
+
         
     }
 
@@ -41,7 +43,7 @@ var player_two = new RunBoy(canvasWidth, canvasHeight);
         } else {
             current = player_two;
         }
-        console.log(current);
+        current.move(game);
     }
 
     
@@ -91,7 +93,7 @@ var player_two = new RunBoy(canvasWidth, canvasHeight);
         this.direction = true;
         this.rewindFrame = null;
         this.x = 0;
-        this.y = startingHeight
+        this.y = startingHeight;
         this.jumping = false;
         this.running = false;
         this.runningJump = false;
@@ -132,7 +134,6 @@ var player_two = new RunBoy(canvasWidth, canvasHeight);
     RunBoy.prototype.currentState = function () {
         var output = {
         direction:  this.direction,
-        rewindFrame: this.rewindFrame,
         x: this.x,
         y: this.y,
         name: this.name,
@@ -212,5 +213,442 @@ var player_two = new RunBoy(canvasWidth, canvasHeight);
         // 5/28 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         this.rewindCount = player.rewindCount;
         // 5/28 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    }
+
+    //The update method for run boy
+    //has the controls for when he will run and jump and will move the player across the screen.
+    RunBoy.prototype.move = function (game) {
+        this.game = game;
+        if (game.running === false) {
+            return this.game;
+        }
+
+        // 5/28 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        if (this.rewinding === true) {
+
+            this.boundingbox = new BoundingBox(this.lastFrame.canvasX, this.lastFrame.canvasY, this.boundingbox.width, this.boundingbox.height);
+            return this.game;
+
+        } else if (this.myRewindStack.length === 0 && this.rewindCount > 0) {
+            ///////////////////////////////////////////////
+            //var rwSound = document.getElementById('rewindSound');
+            //rwSound.pause();
+            //rwSound.currentTime = 0;
+            ///////////////////////////////////////////////
+            this.x = this.lastFrame.canvasX;
+            this.worldX = this.lastFrame.worldX;
+            this.direction = this.lastFrame.direction;
+
+            if (this.lastFrame.currentPlatform != null) {
+                this.currentPlatform = this.lastFrame.currentPlatform;
+                this.y = (this.currentPlatform.boundingBox.top - 3) - this.boundingbox.height;
+                this.worldY = this.lastFrame.worldY;
+
+            } else {
+                this.y = this.lastFrame.canvasY;
+                this.worldY = this.lastFrame.worldY;
+            }
+
+            // 5/30 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+            this.baseHeight = this.y;
+
+            // de-activate keydown Listeners while jumping or falling, otherwise activate them
+            if (this.falling || this.jumping || this.runningJump) {
+                this.game.addListeners = false;
+            } else {
+                this.game.addListeners = true;
+            }
+            // 5/30 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+            return this.game;
+        }
+        // 5/28 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+        var maxHeight = 300;
+        var tempX = this.x;
+        var tempWorldX = this.worldX;
+        var tempY = this.y;
+
+        /*
+         * Falling
+         */
+        if (this.currentPlatform === null && this.y !== startingHeight && !this.runningJump && !this.jumping) {
+            this.falling = true;
+            //var prevY = this.y;
+            this.y = this.y + moveDistance;
+            this.canvasMove();
+
+            if (this.y > startingHeight) {
+                this.y = startingHeight;
+                this.falling = false;
+                this.standing = true;
+                this.baseHeight = this.y;
+                this.falling = false;
+            }
+
+            this.lastBottom = this.boundingbox.bottom;
+            this.lastTop = this.boundingbox.top;
+            this.boundingbox = new BoundingBox(this.x, this.y, this.boundingbox.width, this.boundingbox.height);
+
+        }
+
+            /*
+             * Running and Jumping
+             */
+
+
+            // !!!!!!!!!!!!Changed to to a else if!!! 5/24/2014
+        else if ((this.game.space && (this.game.rightArrow || this.game.leftArrow)) || this.runningJump) {
+            this.runningJump = true;
+            this.jumping = false;
+            this.running = false;
+            this.standing = false;
+            var done = false;
+
+            if (direction) { // Right
+
+                var duration = this.jumpRight.elapsedTime + this.game.clockTick; //the duration of the jump.
+                if (duration > this.jumpRight.totalTime / 2) {
+                    duration = this.jumpRight.totalTime - duration;
+                }
+                duration = duration / this.jumpRight.totalTime;
+                this.height = (4 * duration - 4 * duration * duration) * maxHeight + 17;
+
+                if (this.jumpRight.isDone()) {
+                    done = true;
+                    this.jumpRight.elapsedTime = 0;
+                    this.runningJump = false;
+                }
+
+            } else { // Left
+
+                var duration = this.jumpLeft.elapsedTime + this.game.clockTick;
+                if (duration > this.jumpLeft.totalTime / 2) {
+                    duration = this.jumpLeft.totalTime - duration;
+                }
+                duration = duration / this.jumpLeft.totalTime;
+
+                this.height = (4 * duration - 4 * duration * duration) * maxHeight + 17;
+
+                if (this.jumpLeft.isDone()) {
+                    done = true;
+                    this.jumpLeft.elapsedTime = 0;
+                    this.runningJump = false;
+                }
+            }
+
+            this.canvasMove();
+            this.game.space = false; //stop Runboy from jumping continuously
+            if (done) {
+                this.y = this.baseHeight;
+            }
+            else {
+                this.y = this.baseHeight - this.height / 2;
+            }
+            this.didICollide();
+
+            if (this.landed) {
+                if (direction) {
+                    this.jumpRight.elapsedTime = 0;
+                    this.x = this.x - moveDistance;
+                }
+                else {
+                    this.jumpLeft.elapsedTime = 0;
+                    this.x = this.x + moveDistance;
+                }
+                this.baseHeight = this.y;
+                this.runningJump = false;
+                this.y = tempY;
+            }
+            this.lastBottom = this.boundingbox.bottom;
+            this.lastTop = this.boundingbox.top;
+            this.boundingbox = new BoundingBox(this.x, this.y, this.boundingbox.width, this.boundingbox.height);
+
+            /*
+             * Standing and Jumping
+             */
+        } else if ((this.game.space && this.standing) || this.jumping) {
+            this.jumping = true;
+            this.runningJump = false;
+            this.running = false;
+            this.standing = false;
+            this.game.isRightArrowUp = true;
+            this.game.isLeftArrowUp = true;
+            this.game.rightArrow = false;
+            this.game.leftArrow = false;
+
+            if (direction) { // Right
+                var duration = this.jumpRight.elapsedTime + this.game.clockTick; //the duration of the jump.
+                if (duration > this.jumpRight.totalTime / 2) {
+                    duration = this.jumpRight.totalTime - duration;
+                }
+                duration = duration / this.jumpRight.totalTime;
+                this.height = (4 * duration - 4 * duration * duration) * maxHeight + 17;
+
+                this.lastBottom = this.boundingbox.bottom;
+                this.y = this.baseHeight - this.height / 2;
+
+                if (this.jumpRight.isDone()) {
+                    this.y = this.baseHeight;
+                    this.jumpRight.elapsedTime = 0;
+                    this.jumping = false;
+                }
+
+                this.lastBottom = this.boundingbox.bottom;
+                this.lastTop = this.boundingbox.top;
+                this.boundingbox = new BoundingBox(this.x, this.y, this.boundingbox.width, this.boundingbox.height);
+
+            } else { // Left
+
+                var duration = this.jumpLeft.elapsedTime + this.game.clockTick;
+                if (duration > this.jumpLeft.totalTime / 2) {
+                    duration = this.jumpLeft.totalTime - duration;
+                }
+                duration = duration / this.jumpLeft.totalTime;
+                this.height = (4 * duration - 4 * duration * duration) * maxHeight + 17;
+
+                this.lastBottom = this.boundingbox.bottom;
+                this.lastTop = this.boundingbox.top;
+                this.y = this.baseHeight - this.height / 2;
+
+                if (this.jumpLeft.isDone()) {
+                    this.y = this.baseHeight;
+                    this.jumpLeft.elapsedTime = 0;
+                    this.jumping = false;
+                }
+
+                this.lastBottom = this.boundingbox.bottom;
+                this.lastTop = this.boundingbox.top;
+                this.boundingbox = new BoundingBox(this.x - moveDistance, this.y, this.boundingbox.width, this.boundingbox.height);
+            }
+
+            if (this.landed) {
+                if (this.direction) {
+                    this.jumpRight.elapsedTime = 0;
+                    this.x = this.x - moveDistance;
+                }
+                else {
+                    this.jumpLeft.elapsedTime = 0;
+                    this.x = this.x + moveDistance;
+                }
+                this.baseHeight = this.y;
+                this.jumping = false;
+                this.y = tempY;
+            }
+
+            this.game.space = false; //stop Runboy from jumping continuously
+
+            /*
+             * Running Right
+             */
+        } else if (this.game.rightArrow) {
+            this.running = true;
+            this.standing = false;
+            this.jumping = false;
+            this.runningJump = false;
+            var tempX = this.x;
+            this.canvasMove();
+            this.lastBottom = this.boundingbox.bottom;
+            this.lastTop = this.boundingbox.top;
+            if (this.x > tempX) {
+                this.boundingbox = new BoundingBox(this.x, this.y, this.boundingbox.width, this.boundingbox.height);
+            } else {//for when the world x moves but running boy doesn't move?
+                this.boundingbox = new BoundingBox(this.x + moveDistance, this.y, this.boundingbox.width, this.boundingbox.height);
+            }
+
+            /*
+             * Running Left
+             */
+        } else if (this.game.leftArrow) {
+            this.running = true;
+            this.standing = false;
+            this.jumping = false;
+            this.runningJump = false;
+            var tempX = this.x;
+            this.canvasMove();
+            this.lastBottom = this.boundingbox.bottom;
+            this.lastTop = this.boundingbox.top;
+            if (this.x < tempX) {
+                this.boundingbox = new BoundingBox(this.x, this.y, this.boundingbox.width, this.boundingbox.height);
+            } else {//for when the world x moves but running boy doesn't move?
+                this.boundingbox = new BoundingBox(this.x - moveDistance, this.y, this.boundingbox.width, this.boundingbox.height);
+            }
+
+            /*
+             * Standing
+             */
+        } else if (!this.game.leftArrow && !this.game.rightArrow && !this.game.space) {
+            this.standing = true;
+            this.lastBottom = this.boundingbox.bottom;
+            this.lastTop = this.boundingbox.top;
+            this.boundingbox = new BoundingBox(this.x, this.y, 80, this.boundingbox.height);
+        }
+
+        this.didICollide();
+
+        if (!this.canPass) {
+            this.worldX = tempWorldX;
+            this.x = tempX;
+            this.boundingbox = new BoundingBox(this.x, this.y, this.boundingbox.width, this.boundingbox.height);
+        }
+            //If I can pass then I must not have a current platform near me to collide with, so make sure current platform doesn't exist.
+        else if (!this.collission) {
+            this.currentPlatform = null;
+        }
+
+        // de-activate keydown Listeners while jumping or falling, otherwise activate them
+        if (this.falling || this.jumping || this.runningJump) {
+            this.game.addListeners = false;
+        } else {
+            this.game.addListeners = true;
+        }
+
+        return this.game;
+    };
+
+    /*
+* Determines whether RunBoy moves on the canvas, in the world, or both.
+*/
+    RunBoy.prototype.canvasMove = function () {
+        var canvasMidpoint = this.canvasWidth / 2;
+
+        if (direction) {
+            if ((this.worldX < canvasMidpoint) || ((this.worldX >= this.worldWidth - canvasMidpoint) &&
+                (this.x + 90 <= this.canvasWidth - moveDistance))) {
+                this.x += moveDistance;
+                this.worldX += moveDistance;
+
+            } else if (this.worldX >= this.worldWidth) { // he's at the right edge of the world and canvas
+                this.worldX = this.worldWidth;
+
+            } else { // he's in the middle of the canvas facing right
+                this.worldX += moveDistance;
+            }
+
+        } else {
+            if (this.worldX < canvasMidpoint && (this.x >= moveDistance) || (this.worldX > this.worldWidth - canvasMidpoint)) {
+                this.x -= moveDistance;
+                this.worldX -= moveDistance;
+
+            } else if (this.x <= 0 || this.worldX <= 0) { // he's at the left edge of the world and canvas
+                this.worldX = 0;
+                this.x = 0;
+
+            } else { // he's in the middle of the canvas facing left
+                this.worldX -= moveDistance;
+            }
+        }
+    };
+
+
+    RunBoy.prototype.moveRewind = function () {
+        var canvasMidpoint = this.canvasWidth / 2;
+
+        if (this.worldX < canvasMidpoint || this.worldX > (this.worldWidth - canvasMidpoint)) {
+            this.x = this.lastFrame.canvasX;
+            this.worldX = this.lastFrame.worldX; //-= moveDistance;
+
+        } else if (this.x <= 0 || this.worldX <= 0) { // he's at the left edge of the world and canvas
+            this.worldX = 0;
+            this.x = 0;
+
+        } else { // he's in the middle of the canvas facing left
+            this.worldX = this.lastFrame.worldX;
+            //this.x = this.lastFrame.worldX;
+        }
+
+        this.y = this.lastFrame.canvasY;
+
+        this.direction = this.rewindFrame.direction;
+        this.falling = this.rewindFrame.falling;
+        this.jumping = this.rewindFrame.jumping;
+        this.runningJump = this.rewindFrame.runningJump;
+        this.currentPlatform = this.rewindFrame.currentPlatform;
+        this.worldY = this.lastFrame.worldY;
+    }
+
+
+    RunBoy.prototype.didICollide = function () {
+    
+        this.canPass = true;
+        this.landed = false;
+        this.collission = false;
+
+        for (var i = 0; i < this.game.entities.length; i++) {
+
+            var entity = this.game.entities[i];
+            var result = this.boundingbox.collide(entity.boundingBox);
+
+
+
+            if (result && !entity.removeFromWorld && entity instanceof Item) {
+                // 5/28 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+                document.getElementById('itemSound').play();
+                // 5/28 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+                entity.removeFromWorld = true;
+                this.game.score += entity.points;
+                this.game.numItems++;
+                document.getElementById("score").innerHTML = this.game.score;
+            }
+            else if (result && entity instanceof FinishLine) {
+                this.game.running = false;
+            }
+            else if (result && entity instanceof Enemy) {
+                // 5/28 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+                var rwSound = document.getElementById('rewindSound');
+                //rwSound.loop = 'true';
+                rwSound.play();
+                this.rewindCount++;
+                // 5/28 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+                this.rewindMe();
+                //console.log(entity.boundingbox.x);
+            }
+            else if (result && entity instanceof Platform) {
+
+                this.collission = true;
+
+                //check if I landed on a platform first
+                if (entity.boundingBox.top > this.lastBottom && !this.landed) { //put in separate if state and change landed.
+                    this.currentPlatform = entity;
+                    this.landed = result;
+
+                    // He landed on a platform while falling
+                    if (this.falling) {
+                        this.falling = false;
+                        this.standing = true;
+                        this.jumping = false;
+                        this.runningJump = false;
+                        this.baseHeight = this.y;
+                    }
+
+                }
+                else if (entity.boundingBox.bottom < this.lastTop && !this.landed) {
+                    this.landed = result;
+                }
+                else if (this.canPass && (this.currentPlatform == null || entity.y < this.currentPlatform.y)) {
+                    this.canPass = !result;
+                }
+
+            }
+        }
+    }
+
+    //Adds Each frame to rewind stack
+    RunBoy.prototype.addRewindFrame = function (clipX, clipY, frameWidth, frameHeight) {
+        if (this.myRewindStack.length >= 600) {
+            this.myRewindStack.shift();
+        }
+        var finalIndex = this.myRewindStack.length - 1;
+        var last = this.myRewindStack[finalIndex];
+        var current = {
+            canvasX: Math.floor(this.x), canvasY: Math.floor(this.y), worldX: Math.floor(this.worldX), worldY: Math.floor(this.worldY),
+            clipX: clipX, clipY: clipY,
+            frameWidth: frameWidth, frameHeight: frameHeight, direction: direction ? true : false, falling: this.falling,
+            jumping: this.jumping, runningJump: this.runningJump, running: this.running, boundingbox: this.boundingbox,
+            currentPlatform: this.currentPlatform
+        };
+        this.lastFrame = current;
+        this.myRewindStack.push(current);
 
     }

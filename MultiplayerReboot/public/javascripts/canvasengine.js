@@ -148,13 +148,20 @@ GameEngine.prototype.startInput = function () {
 
 GameEngine.prototype.currentState = function () {
     var output = {
+        running: this.running,
         space: this.space,
         leftArrow: this.leftArrow,
         isLeftArrowUp: this.isLeftArrowUp, 
         direction: this.direction,
         rightArrow: this.rightArrow,
         isRightArrowUp: this.isRightArrowUp,
-        name: this.name
+        name: this.name,
+        addListeners: this.addListeners,
+        score: this.score,
+        numItems: this.numItems,
+        finishLineCompleted: this.finishLineCompleted,
+        runInsideComplete: this.runInsideComplete,
+        closeDoorCompleted: this.closeDoorCompleted
     }
 
     return output;
@@ -299,3 +306,10 @@ RunBoy.prototype.initializeAnimation = function () {
     this.fallLeft = new Animation(ASSET_MANAGER.getAsset(heroSpriteSheet), 10146, 496, 114, 148, 0.01, 1, true);
 }
     //End of Game Animation
+
+RunBoy.prototype.rewindMe = function () {
+    //this.spriteSheet = ;
+    this.rewinding = true;
+    this.rewindFrame = new RewindAnimation(ASSET_MANAGER.getAsset(heroSpriteSheet), this.myRewindStack);
+    this.draw(this.game.ctx);
+}
